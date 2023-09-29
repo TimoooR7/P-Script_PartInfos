@@ -92,3 +92,4 @@ $diskInfoObjects | Format-Table -AutoSize | Out-File -FilePath $logFilePath
 # Affichez les informations collectées
 Write-Host "Informations sur l'espace disque collectées et enregistrées dans le fichier :"
 Write-Host $logFilePath
+x
