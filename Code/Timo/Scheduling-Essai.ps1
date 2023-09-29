@@ -57,8 +57,8 @@ Set-ExecutionPolicy Unrestricted
 $NomTache = "Tache-DiskInfo"
 
 
-$action = New-ScheduledTaskAction -Execute 'C:\Windows\system32\WindowsPowerShell\v1.0\PowerShell_ISE.exe' -Argument 'Y:\Projet\Scheduling-DiskInfo.ps1'
-$trigger = New-ScheduledTaskTrigger -Once -RepetitionInterval ([TimeSpan]::FromMinutes(30))
+$action = New-ScheduledTaskAction -Execute 'C:\Windows\system32\WindowsPowerShell\v1.0\powershell.exe' -Argument 'X:\Code\Timo\Scheduling-DiskInfo.ps1'
+$trigger = New-ScheduledTaskTrigger -Once -RepetitionInterval ([TimeSpan]::FromMinutes(5))
 
 try
 {
@@ -66,6 +66,7 @@ try
 }
 catch
 {
+    # Attribue null à la tâche si elle n'existe pas.
     $tache = $null
 }
 
@@ -73,14 +74,6 @@ catch
 if ($tache -ne $null)
 {
 
-    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $NomTache -TaskPath \Projet -Description "Tâche du projet"
+    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $NomTache -TaskPath \Projet -Description "Tâche du projet I122"
     # Créer la tâche avec action et trigger 
 }
-else 
-{
-    # Supprime la tâche si elle existe déjà
-    Unregister-ScheduledTask -TaskName $NomTache
-}
-
-
-

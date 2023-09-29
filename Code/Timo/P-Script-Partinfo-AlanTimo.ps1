@@ -16,7 +16,7 @@
  	
 .DESCRIPTION
     Ce script permmetera de collecté les données suivante du PC : 
-    la taille, l'espace utilisé, l'expace libre avec le poourcentage, et tous sa mis dans un fichier unique dans un dossier logs. 
+    la taille, l'espace utilisé, l'expace libre avec le poourcentage, et tous ca mis dans un fichier unique dans un dossier logs. 
   	
 
 .OUTPUTS
@@ -52,19 +52,35 @@
 ###################################################################################################################
 # Corps du script
 
-# Ce que fait le script, ici, afficher un message
-# Spécifiez le chemin du dossier où vous souhaitez enregistrer les journaux
-$logsFolderPath = "Z:\Logs\PartInfos"
+$logsFolderPath = "$PWD\Logs\LogsFiles"
+$errorsFolderPath = "$PWD\Logs\ErrorFiles"
 
-# Créez le dossier s'il n'existe pas
+$timeStamp = Get-Date -Format "yyyyMMddHHmmss"
+
+
+# Créé le dossier logs s'il n'existe pas
 if (-not (Test-Path -Path $logsFolderPath)) {
     New-Item -Path $logsFolderPath -ItemType Directory 
+}
+
+# Pareil pour le dossier des erreurs
+if (-not (Test-Path -Path $errorsFolderPath))
+{
+    New-Item -Path $errorsFolderPath -ItemType Directory
 }
 
 
 # Créez un objet personnalisé pour chaque lecteur
 $diskInfoObjects = @()
-foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 }) {
+
+foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.DriveType -eq 2 -or $_.DriveType -eq 3 -or $_.DriveType -eq 4 -or $_.DriveType -eq 5}) {
+   if ($diskInfo.Size -lt 1)
+    {
+        # Pour éviter une erreur de division par 0
+        continue
+    }
+    
+    # Enregistrement de toutes les informations du disque dans le tableau
     $diskObject = [PSCustomObject]@{
         DriveLetter = $diskInfo.DeviceID
         TotalSizeGB = [math]::Round($diskInfo.Size / 1GB, 2)
@@ -72,16 +88,23 @@ foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_
         FreeSpaceGB = [math]::Round($diskInfo.FreeSpace / 1GB, 2)
         FreeSpacePercentage = [math]::Round(($diskInfo.FreeSpace / $diskInfo.Size) * 100, 2)
     }
+    
     $diskInfoObjects += $diskObject
 }
 
-# Créez un nom de fichier unique basé sur la date et l'heure actuelles
-$logFilePath = Join-Path -Path $logsFolderPath -ChildPath $logFileName
 
-# Exportez les informations dans un fichier texte
-$diskInfoObjects | Format-Table -AutoSize | Out-File -FilePath $logFilePath
 
-# Affichez les informations collectées
-Write-Host "Informations sur l'espace disque collectées et enregistrées dans le fichier :"
-Write-Host $logFilePath
-x
+# Création du dossier et du fichier logs
+New-Item -ItemType File -Name "DiskInfo-$timeStamp.log" -Path $logsFolderPath -Force
+$logsFilePath = "$PWD\Logs\LogsFiles\DiskInfo-$timeStamp.log"
+
+# Ecrire toutes les infos des disques dans le fichier .log
+$diskInfoObjects | Format-Table -AutoSize | Out-File -FilePath $logsFilePath
+
+# Affiche les informations des disques sur la console.
+Write-Host "`nInformations sur l'espace disque collectées et enregistrées dans le fichier :" -ForegroundColor Cyan
+Get-Content -Path $logsFilePath
+
+
+### TO DO Mettre les erreurs éventuelles dans le fichier error.log dans son dossier. 
+
