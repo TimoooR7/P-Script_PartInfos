@@ -55,13 +55,34 @@
 $logsFolderPath = "$PWD\Logs\LogsFiles"
 $errorsFolderPath = "$PWD\Logs\ErrorFiles"
 
-$timeStamp = Get-Date -Format "yyyyMMddHHmmss"
+$timeStamp = Get-Date -Format "dd-MM-yyyy_HHmmss" # Les secondes sont à enlever. Les avoir c plus pratique pour les tests
+$logFileName = "$timeStamp-nomdelamachine-DiskInfo.log"
 
-
-# Créé le dossier logs s'il n'existe pas
-if (-not (Test-Path -Path $logsFolderPath)) {
-    New-Item -Path $logsFolderPath -ItemType Directory 
+try 
+{
+    # Créé le dossier logs s'il n'existe pas
+    if (-not (Test-Path -Path $logsFolderPath)) 
+    {
+        New-Item -Path $logsFolderPath -ItemType Directory 
+    }
 }
+catch
+{
+    # Un message d'erreur est affiché si on a pas les autorisations nécessaires
+    if (-not [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsAdmin)
+    {
+        throw [System.UnauthorizedAccessException]::new("Le dossier <LogsFiles> n'a pas été créée car vous n'avez pas les autorisations nécessaires.")
+    }
+}
+
+#### TODO LE TRYCATCH POUR CREATION FICHIER LOG & METTRE LES ERREURS DANS FICHIER ERREUR
+
+ # Création du fichier de logs & enregistrement du chemin du fichier
+    New-Item -ItemType File -Name "$logFileName" -Path $logsFolderPath
+    $logsFilePath = "$logsFolderPath\$logFileName"
+
+
+
 
 # Pareil pour le dossier des erreurs
 if (-not (Test-Path -Path $errorsFolderPath))
@@ -94,17 +115,14 @@ foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_
 
 
 
-# Création du dossier et du fichier logs
-New-Item -ItemType File -Name "DiskInfo-$timeStamp.log" -Path $logsFolderPath -Force
-$logsFilePath = "$PWD\Logs\LogsFiles\DiskInfo-$timeStamp.log"
+
 
 # Ecrire toutes les infos des disques dans le fichier .log
 $diskInfoObjects | Format-Table -AutoSize | Out-File -FilePath $logsFilePath
 
-# Affiche les informations des disques sur la console.
+# Affiche les informations des disques sur la console en allant les chercher dans le fichier .log
 Write-Host "`nInformations sur l'espace disque collectées et enregistrées dans le fichier :" -ForegroundColor Cyan
 Get-Content -Path $logsFilePath
 
-
-### TO DO Mettre les erreurs éventuelles dans le fichier error.log dans son dossier. 
+ 
 
