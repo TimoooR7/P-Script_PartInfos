@@ -1,10 +1,13 @@
 ### P-Script_PartInfos
 Repo du projet du module 122
 
-## Notre carte mentale : 
+## Participants
 
-- Trouver comment lancer un script dans le planificateur de tâches
-- Trouver comment faire en sorte qu'il se lance à des périodes précises
-- Supprimer le script en éxécution si on en lance un nouveau
+ - Timo Rouwenhorst
+ - Alan Bitter
 
+ ## Autres infos
+
+ Date de début : 22.09.2023
+ Date de fin : 03.11.2023
 
