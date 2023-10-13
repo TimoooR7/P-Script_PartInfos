@@ -5,6 +5,7 @@
     Nom du script:	P-Script_PartInfos 
     Auteur:	Alan Bitter et Timo Rouwenhorst
     Date de création:	22.09.2023
+    Date de fin : 11.10.2023
  	*****************************************************************************
    
 .SYNOPSIS

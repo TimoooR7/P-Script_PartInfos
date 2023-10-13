@@ -8,6 +8,6 @@ Repo du projet du module 122
 
  ## Autres infos
 
- Date de début : 22.09.2023
- Date de fin : 03.11.2023
+ - Date de début : 22.09.2023
+ - Date de fin : 03.11.2023
 
