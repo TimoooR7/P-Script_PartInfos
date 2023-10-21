@@ -127,6 +127,8 @@ try
 }
 catch
 {
+
+    $errorMessage = $_.Exception.Message ### TODO
     # Un message d'erreur apparaît si on n'a pas les droits admin pour créer les dossiers/fichiers
     if ($isUserAdmin -eq $false)
     {
