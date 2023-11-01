@@ -89,6 +89,9 @@ $logsFilePath = "$logsFolderPath\$logFileName" # Le chemin du fichier de logs
 $errorsFilePath = "$errorsFolderPath\$errorsFileName" # Le chemin du fichier d'erreurs
 
 # Messages d'erreurs
+
+[string]$userNotAdminMessage = "{ERROR} Le programme ne s'est pas lancé car vous n'avez pas les autorisations nécessaires."
+
 [string]$unauthorizedAccess_ErrorsFile = "{ERROR} Le fichier d'erreurs n'a pas été créée car vous n'avez pas les autorisations nécessaires."
 [string]$invalidOperation_ErrorsFile = "{ERROR} Une erreur non-déterminée a empêché la création du fichier <$errorsFileName>. Vérifiez votre observateur d'évènement pour + d'infos"
 
@@ -107,6 +110,15 @@ $errorsFilePath = "$errorsFolderPath\$errorsFileName" # Le chemin du fichier d'e
 # Teste si on a les droits admin
 [bool]$isUserAdmin = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsAdmin
 
+if ($isUserAdmin -eq $false)
+{
+    # Renvoie un message d'erreur si on a pas les droits admin. Ne peux pas être envoyée dans le fichier d'erreurs vu qu'il a besoin des droits pour être crée & qu'il n'existe pas encore. 
+    Write-Error "$userNotAdminMessage"
+    exit
+
+    ### TODO Trouver pk message d'erreur ici alors qu'on est admin
+}
+
 
 
 # Affiche l'aide si un ou plusieurs paramètres ne sont par renseignés, "safe guard clauses" permet d'optimiser l'exécution et la lecture des scripts
@@ -114,6 +126,15 @@ $errorsFilePath = "$errorsFolderPath\$errorsFileName" # Le chemin du fichier d'e
 
 ###################################################################################################################
 # Corps du script
+
+
+
+##### TODO Changer le contenu des catch, la manière dont le message est écrit sur la console, 
+#     les messages d'erreur et la redirection de ceux ci dans les fichiers .log d'erreurs.
+
+
+
+
 
 
 # Création du dossier & fichier .log des erreurs avec -Force. 
@@ -127,11 +148,15 @@ try
 }
 catch
 {
+    # Enregistrement du message d'erreur soulevée par le catch
+    $errorMessage = $_.Exception.Message
 
-    $errorMessage = $_.Exception.Message ### TODO
     # Un message d'erreur apparaît si on n'a pas les droits admin pour créer les dossiers/fichiers
     if ($isUserAdmin -eq $false)
     {
+        # Erciture sur la console de l'erreur retournée par le catch
+        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
+
         throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_ErrorsFile)
     }
 
@@ -153,9 +178,14 @@ try
 }
 catch
 {
+   
+    $errorMessage = $_.Exception.Message
+
     # Un message d'erreur est affiché si on a pas les autorisations nécessaires
     if ($isUserAdmin -eq $false)
     {
+        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
+
         Write-Output $unauthorizedAccess_LogFile > $errorsFilePath # Envoie l'erreur dans le fichier d'erreurs
         throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_LogFile)
     }
@@ -163,6 +193,8 @@ catch
     # Un message d'erreur apparaît si le fichier n'a pas été créée.
     if (-not(Test-Path -Path $logsFilePath))
     {
+        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
+
         Write-Output $invalidOperation_LogFile > $errorsFilePath 
         throw [System.InvalidOperationException]::new($invalidOperation_LogFile)
     } 
@@ -199,9 +231,15 @@ foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_
     }
     catch 
     {
+        
+        $errorMessage = $_.Exception.Message
+
         # Un message d'erreur apparaît si on a pas les droits admin pour aller chercher les informations des partitions
         if ($isUserAdmin -eq $false)
         {
+
+            Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
+
             Write-Output $unauthorizedAccess_Infos > $errorsFilePath
             throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_Infos)
         }
@@ -209,6 +247,8 @@ foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_
         # Un message d'erreur apparaît si les informations n'ont tout de même pas pu être récoltées
         if ($diskInfo -eq $null)
         {
+            Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
+
             Write-Output $invalidOperation_Infos > $errorsFilePath
             throw [System.InvalidOperationException]::new($invalidOperation_Infos)
         }
