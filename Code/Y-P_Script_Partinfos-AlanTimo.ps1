@@ -92,32 +92,20 @@ $errorsFilePath = "$errorsFolderPath\$errorsFileName" # Le chemin du fichier d'e
 
 [string]$userNotAdminMessage = "{ERROR} Le programme ne s'est pas lancé car vous n'avez pas les autorisations nécessaires."
 
-[string]$unauthorizedAccess_ErrorsFile = "{ERROR} Le fichier d'erreurs n'a pas été créée car vous n'avez pas les autorisations nécessaires."
-[string]$invalidOperation_ErrorsFile = "{ERROR} Une erreur non-déterminée a empêché la création du fichier <$errorsFileName>. Vérifiez votre observateur d'évènement pour + d'infos"
 
-[string]$unauthorizedAccess_LogFile = "{ERROR} Le fichier de logs n'a pas été créée car vous n'avez pas les autorisations nécessaires."
-[string]$invalidOperation_LogFile = "{ERROR} Une erreur non-déterminée a empêché la création du fichier <$logFileName>. Vérifiez votre observateur d'évènement pour + d'infos"
-
-[string]$unauthorizedAccess_Infos = "{ERROR} Les informations n'ont pas pu être collectées car vous n'avez pas les autorisations nécessaires."
-[string]$invalidOperation_Infos = "{ERROR} Une erreur non-déterminée a empêché la collecte des infos. Vérifiez votre observateur d'évènement pour + d'infos"
-
-[string]$unauthorizedAccess_Writing = "{ERROR} L'écriture dans le fichier .log n'a pas pu se faire car vous n'avez pas les autorisations nécessaires."
-[string]$invalidOperation_Writing = "{ERROR} Une erreur non-déterminée empêche l'écriture dans le fichier <$logFileName>. Vérifiez votre observateur d'évènements pour + d'infos"
 
 ###################################################################################################################
 # Zone de tests comme les paramètres renseignés ou les droits administrateurs
 
-# Teste si on a les droits admin
-[bool]$isUserAdmin = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsAdmin
+# Teste si on a les droits admin, termine le script si non.
 
-if ($isUserAdmin -eq $false)
+if (-not([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+[Security.Principal.WindowsBuiltInRole] "Administrator"))
 {
-    # Renvoie un message d'erreur si on a pas les droits admin. Ne peux pas être envoyée dans le fichier d'erreurs vu qu'il a besoin des droits pour être crée & qu'il n'existe pas encore. 
-    Write-Error "$userNotAdminMessage"
+    Write-Host "$userNotAdminMessage`n" -ForegroundColor Magenta
     exit
-
-    ### TODO Trouver pk message d'erreur ici alors qu'on est admin
 }
+
 
 
 
@@ -126,16 +114,6 @@ if ($isUserAdmin -eq $false)
 
 ###################################################################################################################
 # Corps du script
-
-
-
-##### TODO Changer le contenu des catch, la manière dont le message est écrit sur la console, 
-#     les messages d'erreur et la redirection de ceux ci dans les fichiers .log d'erreurs.
-
-
-
-
-
 
 # Création du dossier & fichier .log des erreurs avec -Force. 
 try 
@@ -148,23 +126,11 @@ try
 }
 catch
 {
-    # Enregistrement du message d'erreur soulevée par le catch
-    $errorMessage = $_.Exception.Message
-
-    # Un message d'erreur apparaît si on n'a pas les droits admin pour créer les dossiers/fichiers
-    if ($isUserAdmin -eq $false)
-    {
-        # Erciture sur la console de l'erreur retournée par le catch
-        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
-
-        throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_ErrorsFile)
-    }
-
-    # Un message d'erreur apparaît si le fichier n'a tout de même pas été créée
-    if (-not(Test-Path -Path "$errorsFilePath"))
-    {
-        throw [System.InvalidOperationException]::new($invalidOperation_ErrorsFile)
-    }
+        # Obtient l'erreur qui vient de se produire, l'affiche sur la console en rouge et termine le script.
+        $errorMessage = "{ERROR} $_.Exception.Message"
+        Write-Host $errorMessage -ForegroundColor Red
+        Write-Output $errorMessage > $errorsFilePath
+        exit
 }
 
 # Création du dossier & fichier .log de logs avec -Force
@@ -179,28 +145,12 @@ try
 catch
 {
    
-    $errorMessage = $_.Exception.Message
-
-    # Un message d'erreur est affiché si on a pas les autorisations nécessaires
-    if ($isUserAdmin -eq $false)
-    {
-        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
-
-        Write-Output $unauthorizedAccess_LogFile > $errorsFilePath # Envoie l'erreur dans le fichier d'erreurs
-        throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_LogFile)
-    }
-    
-    # Un message d'erreur apparaît si le fichier n'a pas été créée.
-    if (-not(Test-Path -Path $logsFilePath))
-    {
-        Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
-
-        Write-Output $invalidOperation_LogFile > $errorsFilePath 
-        throw [System.InvalidOperationException]::new($invalidOperation_LogFile)
-    } 
+        # Obtient l'erreur qui vient de se produire, l'affiche sur la console en rouge et termine le script.
+        $errorMessage = "{ERROR} $_.Exception.Message" 
+        Write-Host $errorMessage -ForegroundColor Red
+        Write-Output $errorMessage > $errorsFilePath
+        exit
 }
-
-
 
 
 # Tableau qui contient les infos de chaque disque
@@ -231,27 +181,11 @@ foreach ($diskInfo in Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_
     }
     catch 
     {
-        
-        $errorMessage = $_.Exception.Message
-
-        # Un message d'erreur apparaît si on a pas les droits admin pour aller chercher les informations des partitions
-        if ($isUserAdmin -eq $false)
-        {
-
-            Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
-
-            Write-Output $unauthorizedAccess_Infos > $errorsFilePath
-            throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_Infos)
-        }
-
-        # Un message d'erreur apparaît si les informations n'ont tout de même pas pu être récoltées
-        if ($diskInfo -eq $null)
-        {
-            Write-Host "Erreur : $errorMessage`n" -ForegroundColor Red
-
-            Write-Output $invalidOperation_Infos > $errorsFilePath
-            throw [System.InvalidOperationException]::new($invalidOperation_Infos)
-        }
+        # Obtient l'erreur qui vient de se produire, l'affiche sur la console en rouge et termine le script.
+        $errorMessage = "{ERROR} $_.Exception.Message"
+        Write-Host $errorMessage -ForegroundColor Red
+        Write-Output $errorMessage > $errorsFilePath
+        exit
     }
 }
 
@@ -262,18 +196,11 @@ try
 }
 catch
 {
-    # Message d'erreur si on a pas les droits admin. Sinon, c'est une erreur non-identifée.
-    if ($isUserAdmin -eq $false)
-    {
-        Write-Output $unauthorizedAccess_Infos > $errorsFilePath
-        throw [System.UnauthorizedAccessException]::new($unauthorizedAccess_Infos)
-    }
-    else
-    { 
-        # Message d'erreur si l'écriture dans le fichier n'a pas été faite pour une quelconque raison
-        Write-Output $invalidOperation_Infos > $errorsFilePath
-        throw [System.InvalidOperationException]::new($invalidOperation_Infos)
-    }
+        # Obtient l'erreur qui vient de se produire, l'affiche sur la console en rouge et termine le script.
+        $errorMessage = "{ERROR} $_.Exception.Message"
+        Write-Host $errorMessage -ForegroundColor Red
+        Write-Output $errorMessage > $errorsFilePath
+        exit
 }
 
 
