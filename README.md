@@ -1,7 +1,7 @@
 ### P-Script_PartInfos
 PartInfos est un script powershell vous permettant d'obtenir toutes sortes d'informations sur votre disque local. 
 Les informations sont collectées et disponibles dans un fichier de logs, disponible au chemin suivant sur votre PC :
-C:\Users\votreusername\Documents
+C:\Users\votreusername\Documents\Logs\Partinfosxxxx.log
 
 Exécutez-le simplement et analysez les infos de tous les disques disponibles sur votre PC. 
 Fonctionne aussi pour les disques portables et disques réseau/partagés ! 
